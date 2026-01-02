@@ -13,6 +13,10 @@ const coreOD = document.getElementById("coreOD");
 const coreLength = document.getElementById("coreLength");
 const extraInput = document.getElementById("extra");
 
+const saveModal = document.getElementById("saveModal");
+const saveTitle = document.getElementById("saveTitle");
+const saveMessage = document.getElementById("saveMessage");
+
 const ADMIN_PASSWORD = "electro123";
 
 const supabaseClient = window.supabase.createClient(
@@ -77,6 +81,17 @@ function backToLanding() {
   result.innerHTML = "";
 }
 
+function openSaveModal(title, message) {
+  saveTitle.innerText = title;
+  saveMessage.innerText = message;
+  saveModal.classList.remove("hidden");
+}
+
+function closeSaveModal() {
+  saveModal.classList.add("hidden");
+}
+
+
 // ---------- RENDER DB ----------
 function renderDB() {
   dbTable.innerHTML = `
@@ -102,33 +117,51 @@ function renderDB() {
 }
 
 async function saveDatabase() {
+  const saveBtn = document.getElementById("saveBtn");
+  saveBtn.disabled = true;
+  saveBtn.innerText = "Saving...";
+
   const rows = [...dbTable.rows].slice(1);
 
-  for (const row of rows) {
-    const id = row.dataset.id;
+  try {
+    for (const row of rows) {
+      const id = row.dataset.id;
 
-    const updateObj = {
-      swg: +row.cells[1].innerText,
-      thickness: +row.cells[2].innerText,
-      ohm: +row.cells[3].innerText,
-      minw: +row.cells[4].innerText,
-      maxw: +row.cells[5].innerText
-    };
+      const updateObj = {
+        swg: +row.cells[1].innerText,
+        thickness: +row.cells[2].innerText,
+        ohm: +row.cells[3].innerText,
+        minw: +row.cells[4].innerText,
+        maxw: +row.cells[5].innerText
+      };
 
-    const { error } = await supabaseClient
-      .from("nichrome_wires")
-      .update(updateObj)
-      .eq("id", id);
+      const { error } = await supabaseClient
+        .from("nichrome_wires")
+        .update(updateObj)
+        .eq("id", id);
 
-    if (error) {
-      alert("❌ Failed to save database");
-      console.error(error);
-      return;
+      if (error) throw error;
     }
-  }
 
-  alert("✅ Database saved globally");
-  loadDatabase();
+    await loadDatabase();
+
+    openSaveModal(
+      "✅ Saved Successfully",
+      "Nichrome database has been updated successfully."
+    );
+
+  } catch (err) {
+    console.error(err);
+
+    openSaveModal(
+      "❌ Save Failed",
+      "Something went wrong while saving. Please try again."
+    );
+
+  } finally {
+    saveBtn.disabled = false;
+    saveBtn.innerText = "Save Changes";
+  }
 }
 
 function calculate() {

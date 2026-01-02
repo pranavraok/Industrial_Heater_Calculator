@@ -39,12 +39,21 @@
   </div>
 </div>
 
+<div id="saveModal" class="modal hidden">
+  <div class="modal-box">
+    <h3 id="saveTitle">Status</h3>
+    <p id="saveMessage" style="margin:15px 0;"></p>
+    <button onclick="closeSaveModal()">OK</button>
+  </div>
+</div>
+
+
 <div id="dbEditor" class="container hidden">
   <h3>Edit Nichrome Database</h3>
   <div class="table-wrapper">
     <table id="dbTable"></table>
   </div>
-  <button onclick="saveDatabase()">Save Changes</button>
+  <button id="saveBtn" onclick="saveDatabase()">Save Changes</button>
   <button onclick="backToLanding()" style="background:#64748b;margin-left:10px">Back</button>
 </div>
 
