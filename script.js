@@ -1,3 +1,4 @@
+// ---------- DOM REFERENCES ----------
 const landing = document.getElementById("landing");
 const calculator = document.getElementById("calculator");
 const passwordModal = document.getElementById("passwordModal");
@@ -13,37 +14,37 @@ const coreOD = document.getElementById("coreOD");
 const coreLength = document.getElementById("coreLength");
 const extraInput = document.getElementById("extra");
 
+// ---------- ADMIN ----------
 const ADMIN_PASSWORD = "electro123";
 
-const defaultData = [
-  { swg:22, thickness:0.711, ohm:2.760, minW:1300, maxW:1599 },
-  { swg:23, thickness:0.610, ohm:3.728, minW:1200, maxW:1299 },
-  { swg:24, thickness:0.559, ohm:4.536, minW:900, maxW:1199 },
-  { swg:25, thickness:0.508, ohm:5.31, minW:850, maxW:1049 },
-  { swg:26, thickness:0.457, ohm:6.802, minW:800, maxW:899 },
-  { swg:28, thickness:0.376, ohm:9.793, minW:600, maxW:799 },
-  { swg:30, thickness:0.305, ohm:15.744, minW:400, maxW:599 },
-  { swg:32, thickness:0.274, ohm:18.32, minW:300, maxW:399 },
-  { swg:32, thickness:0.274, ohm:18.600, minW:300, maxW:399 },
-  { swg:34, thickness:0.234, ohm:25.90, minW:250, maxW:299 },
-  { swg:35, thickness:0.213, ohm:31.596, minW:225, maxW:274 },
-  { swg:36, thickness:0.193, ohm:36.06, minW:200, maxW:249 },
-  { swg:36, thickness:0.193, ohm:37.08, minW:200, maxW:249 },
-  { swg:37, thickness:0.173, ohm:45.82, minW:175, maxW:199 },
-  { swg:38, thickness:0.152, ohm:62.88, minW:150, maxW:199 },
-  { swg:38, thickness:0.152, ohm:59.408, minW:150, maxW:199 },
-  { swg:39, thickness:0.132, ohm:78.40, minW:133, maxW:174 },
-  { swg:40, thickness:0.122, ohm:93.20, minW:125, maxW:149 },
-  { swg:40, thickness:0.122, ohm:94.00, minW:125, maxW:149 },
-  { swg:42, thickness:0.102, ohm:132.60, minW:100, maxW:124 },
-  { swg:42, thickness:0.102, ohm:139.20, minW:100, maxW:124 },
-  { swg:44, thickness:0.081, ohm:214.66, minW:10, maxW:99 },
-  { swg:44, thickness:0.081, ohm:219.0, minW:10, maxW:99 }
-  
-];
+// ---------- SUPABASE INIT (FIXED) ----------
+const supabaseClient = window.supabase.createClient(
+  "https://zgwpjwywbnhrwzlucvwe.supabase.co",
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpnd3Bqd3l3Ym5ocnd6bHVjdndlIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NjczNzEyODAsImV4cCI6MjA4Mjk0NzI4MH0.jNlLdo4lAoVVNauhAqY0v_8L_sY_XVdlnsV230BaoAY"
+);
 
-let nichromeData = JSON.parse(localStorage.getItem("nichromeDB")) || defaultData;
+// ---------- GLOBAL DB ----------
+let nichromeData = [];
 
+// ---------- LOAD DB FROM SUPABASE ----------
+async function loadDatabase() {
+  const { data, error } = await supabaseClient
+    .from("nichrome_wires")
+    .select("*")
+    .order("swg");
+
+  if (error) {
+    alert("❌ Failed to load wire database");
+    console.error(error);
+    return;
+  }
+
+  nichromeData = data;
+}
+
+loadDatabase();
+
+// ---------- UI NAV ----------
 function openCalculator() {
   landing.classList.add("hidden");
   dbEditor.classList.add("hidden");
@@ -82,9 +83,11 @@ function backToLanding() {
   result.innerHTML = "";
 }
 
+// ---------- RENDER DB ----------
 function renderDB() {
   dbTable.innerHTML = `
     <tr>
+      <th>ID</th>
       <th>SWG</th>
       <th>Thickness</th>
       <th>Ω/m</th>
@@ -92,32 +95,50 @@ function renderDB() {
       <th>Max W</th>
     </tr>
     ${nichromeData.map(r => `
-      <tr>
+      <tr data-id="${r.id}">
+        <td>${r.id}</td>
         <td contenteditable>${r.swg}</td>
         <td contenteditable>${r.thickness}</td>
         <td contenteditable>${r.ohm}</td>
-        <td contenteditable>${r.minW}</td>
-        <td contenteditable>${r.maxW}</td>
+        <td contenteditable>${r.minw}</td>
+        <td contenteditable>${r.maxw}</td>
       </tr>
     `).join("")}
   `;
 }
 
-function saveDatabase() {
+// ---------- SAVE DB ----------
+async function saveDatabase() {
   const rows = [...dbTable.rows].slice(1);
 
-  nichromeData = rows.map(r => ({
-    swg: +r.cells[0].innerText,
-    thickness: +r.cells[1].innerText,
-    ohm: +r.cells[2].innerText,
-    minW: +r.cells[3].innerText,
-    maxW: +r.cells[4].innerText
-  }));
+  for (const row of rows) {
+    const id = row.dataset.id;
 
-  localStorage.setItem("nichromeDB", JSON.stringify(nichromeData));
-  alert("✅ Database saved permanently");
+    const updateObj = {
+      swg: +row.cells[1].innerText,
+      thickness: +row.cells[2].innerText,
+      ohm: +row.cells[3].innerText,
+      minw: +row.cells[4].innerText,
+      maxw: +row.cells[5].innerText
+    };
+
+    const { error } = await supabaseClient
+      .from("nichrome_wires")
+      .update(updateObj)
+      .eq("id", id);
+
+    if (error) {
+      alert("❌ Failed to save database");
+      console.error(error);
+      return;
+    }
+  }
+
+  alert("✅ Database saved globally");
+  loadDatabase();
 }
 
+// ---------- CALCULATION (UNCHANGED) ----------
 function calculate() {
   const W = +wattage.value;
   const V = +voltage.value;
@@ -135,7 +156,7 @@ function calculate() {
   const finalR = baseR * (1 + extra / 100);
 
   const startIndex = nichromeData.findIndex(
-    w => W >= w.minW && W <= w.maxW
+    w => W >= w.minw && W <= w.maxw
   );
 
   if (startIndex === -1) {
@@ -219,7 +240,7 @@ function calculate() {
   `;
 }
 
-
+// ---------- ENTER KEY ----------
 dbPassword.addEventListener("keypress", function(e) {
   if (e.key === "Enter") {
     checkPassword();
