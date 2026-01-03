@@ -203,12 +203,15 @@ function calculate() {
     const pitch = L / turns;
     const idealPitch = 2 * w.thickness;
 
-    const diff = Math.abs(pitch - idealPitch) / idealPitch * 100;
+    // 🔑 ACCEPTABLE PITCH LOGIC (FINAL)
+    let pass = false;
 
-    const pass =
-      w.swg <= 36
-        ? pitch >= idealPitch && diff <= 50
-        : pitch >= idealPitch;
+    if (w.swg >= 22 && w.swg <= 32) {
+      const minPitch = idealPitch * 0.98; // -2% allowed
+      pass = pitch >= minPitch;
+    } else if (w.swg >= 33 && w.swg <= 45) {
+      pass = pitch >= idealPitch;
+    }
 
     results.push({
       swg: w.swg,
@@ -221,10 +224,13 @@ function calculate() {
       pass
     });
 
+    // PRIMARY
     if (pass && !found) {
       primaryIndex = results.length - 1;
       found = true;
-    } else if (found) break;
+    }
+    // SECONDARY (one more only)
+    else if (found) break;
   }
 
   result.innerHTML = `
